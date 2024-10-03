@@ -30,5 +30,32 @@ class RegisterView(APIView):
 			return Response(errors, status=status.HTTP_422_UNPROCESSABLE_ENTITY)
 
 
+class LoginView(APIView):
 
+	def post(self, request):
+		email = request.data.get('email')
+		password = request.data.get('password')
+
+		user = authenticate(request, username=email, password=password)
+		if user:
+			refresh_token = RefreshToken.for_user(user)
+			login(request, user)
+
+			data = {
+				"status": "success",
+				"message": "Login Successful",
+				"data": {
+					"access_token": str(refresh_token.access_token),
+					"user": UserSerializer(user).data
+				}
+			}
+			return Response(data, status=status.HTTP_200_OK)
+		else:
+			data = {
+				"status": "Bad Request",
+				"message": "Authentication failed",
+				"status_code": 401
+			}
+			return Response(data, status=status.HTTP_401_UNAUTHORIZED)
+		
 
