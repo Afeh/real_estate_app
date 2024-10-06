@@ -21,3 +21,16 @@ class UserSerializer(serializers.ModelSerializer):
 		validated_data.pop('confirm_password')
 		user = User.objects.create_user(**validated_data)
 		return user
+	
+
+class ForgotPasswordViewSerializer(serializers.Serializer):
+	email = serializers.EmailField()
+
+class SetNewPasswordViewSerializer(serializers.Serializer):
+	new_password = serializers.CharField(min_length=8, write_only=True)
+	confirm_password = serializers.CharField(min_length=8, write_only=True)
+
+	def validate(self, data):
+		if data['new_password'] != data['confirm_password']:
+			raise serializers.ValidationError("Passwords do not match.")
+		return data
