@@ -73,4 +73,29 @@ class OTP(models.Model):
 	def is_expired(self):
 		return timezone.now() > self.expires_at
 	
-	
+
+class Client(models.Model):
+	GENDER_CHOICES = (('male', 'Male'), ('female', 'Female'))
+
+	user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='client_profile')
+	partner = models.BooleanField(default=False)
+	partner_age = models.IntegerField()
+	gender = models.CharField(max_length=20, choices=GENDER_CHOICES, default='male')
+
+	def __str__(self):
+		return f"Client: {self.user.first_name}"
+
+
+class Agent(models.Model):
+	user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='agent_profile')
+	is_verified = models.BooleanField(default=False)
+
+	def __str__(self):
+		return f"Agent {self.user.first_name}"
+
+
+class Owner(models.Model):
+	user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='owner_profile')
+
+	def __str__(self):
+		return f"Owner {self.user.first_name}"
