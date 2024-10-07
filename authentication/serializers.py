@@ -41,3 +41,27 @@ class SetNewPasswordViewSerializer(serializers.Serializer):
 		if data['new_password'] != data['confirm_password']:
 			raise serializers.ValidationError("Passwords do not match.")
 		return data
+
+
+class UpdateProfileSerializer(serializers.ModelSerializer):
+	class Meta:
+		model = User
+		fields = ['first_name', 'last_name', 'email', 'apartment_type', 'location']
+
+		def update(self, instance, validated_data):
+			for attr, value in validated_data.items():
+				setattr(instance, attr, value)
+			instance.save()
+			return instance
+
+
+class ClientProfileUpdateSerializer(serializers.ModelSerializer):
+	class Meta:
+		model = Client
+		fields = ['partner', 'partner_age', 'partner_gender']
+
+
+class AgentProfileUpdateSerializer(serializers.ModelSerializer):
+	class Meta:
+		model = Agent
+		fields = ['is_verified']

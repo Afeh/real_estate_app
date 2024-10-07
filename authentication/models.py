@@ -33,6 +33,7 @@ class UserManager(BaseUserManager):
 	def create_superuser(self, first_name, last_name, email, gender, phone, password=None):
 		user = self.create_user(email=email, first_name=first_name, last_name=last_name, gender=gender, phone=phone, password=password)
 		user.is_admin = True
+		user.is_staff = True
 		user.save(using=self._db)
 		return user
 	
@@ -53,6 +54,9 @@ class User(AbstractBaseUser):
 	role = models.CharField(max_length=10, choices=[(role.name, role.value) for role in UserRole], default=UserRole.CLIENT.value)
 	created_at = models.DateTimeField(auto_now_add=True)
 
+	is_admin = models.BooleanField(default=False)
+	is_staff = models.BooleanField(default=False)
+
 	USERNAME_FIELD = 'email'
 	REQUIRED_FIELDS = ['first_name', 'last_name', 'phone', 'date_of_birth']
 
@@ -60,6 +64,16 @@ class User(AbstractBaseUser):
 
 	def __str__(self):
 		return self.first_name
+	
+	@property
+	def is_superuser(self):
+		return self.is_admin
+	
+	def has_perm(self, perm, obj=None):
+		return self.is_admin
+	
+	def has_module_perms(self, app_label):
+		return self.is_admin
 	
 
 

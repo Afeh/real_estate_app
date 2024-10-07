@@ -1,7 +1,7 @@
 from rest_framework import status
 from rest_framework.views import APIView
 from .models import Client, Agent, Owner
-from .serializers import UserSerializer, ForgotPasswordViewSerializer, SetNewPasswordViewSerializer
+from .serializers import UserSerializer, ForgotPasswordViewSerializer, SetNewPasswordViewSerializer, UpdateProfileSerializer, ClientProfileUpdateSerializer, AgentProfileUpdateSerializer
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework_simplejwt.authentication import JWTAuthentication
 from rest_framework.permissions import IsAuthenticated
@@ -217,3 +217,74 @@ class GetAgentDetail(APIView):
 			return Response({'error': 'User does not exist'}, status=status.HTTP_404_NOT_FOUND)
 
 
+class UpdateUserProfile(APIView):
+	permission_classes = [IsAuthenticated]
+	authentication_classes = [JWTAuthentication]
+
+	def patch(self, request, user_id):
+		try:
+			user = User.objects.get(user_id=user_id)
+
+			user_serializer = UpdateProfileSerializer(user, data=request.data, partial=True)
+			if user_serializer.is_valid():
+				user_serializer.save()
+			else:
+				return Response(user_serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+			
+			if hasattr(user, 'client_profile'):
+				client = user.client_profile
+				client_serializer = ClientProfileUpdateSerializer(client, data=request.data, partial=True)
+				if client_serializer.is_valid():
+					client_serializer.save()
+					data = {
+						"status": "success",
+						"message": "Client Details Updated Successfully",
+						"data" : {
+							'first_name': client.user.first_name,
+							'last_name': client.user.last_name,
+							'email': client.user.email,
+							'phone': client.user.phone,
+							'date_of_birth': client.user.date_of_birth,
+							'partner': client.partner,
+							'partner_age': client.partner_age,
+							'partner_gender': client.partner_gender
+						}
+					}
+				else:
+					return Response(client_serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+			elif hasattr(user, 'agent_profile'):
+				agent = user.agent_profile
+
+				if 'is_verified' in request.data:
+					if not request.user.is_admin:
+						return Response({
+							'status': 'Bad Request',
+							'message': 'You do not have permission to change verification status'
+							}, status=status.HTTP_403_FORBIDDEN
+						)
+					
+				agent_serializer = AgentProfileUpdateSerializer(agent, data=request.data, partial=True)
+				if agent_serializer.is_valid():
+					agent_serializer.save()
+					data = {
+						"status": "success",
+						"message": "Agent Details Updated Successfully",
+						"data" : {
+							'first_name': agent.user.first_name,
+							'last_name': agent.user.last_name,
+							'email': agent.user.email,
+							'phone': agent.user.phone,
+							'is_verified': agent.is_verified
+						}
+					}
+				else:
+					return Response(agent_serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+			return Response(data, status=status.HTTP_201_CREATED)
+		
+		except User.DoesNotExist:
+			return Response({
+				'status': 'Bad Request',
+				'message': 'Error. User does not exist'
+			}, status=status.HTTP_404_NOT_FOUND)
