@@ -1,7 +1,10 @@
 from rest_framework import status
 from rest_framework.views import APIView
+from .models import Client, Agent, Owner
 from .serializers import UserSerializer, ForgotPasswordViewSerializer, SetNewPasswordViewSerializer
 from rest_framework_simplejwt.tokens import RefreshToken
+from rest_framework_simplejwt.authentication import JWTAuthentication
+from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from django.contrib.auth import get_user_model, authenticate, login
 from django.contrib.auth.tokens import default_token_generator
@@ -164,3 +167,53 @@ class PasswordResetView(APIView):
 			return Response({'message': 'Password reset successful!'}, status=status.HTTP_200_OK)
 		
 		return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+class GetClientDetail(APIView):
+	permission_classes = [IsAuthenticated]
+	authentication_classes = [JWTAuthentication]
+
+	def get(self, request, client_id):
+		try:
+			client = Client.objects.get(user__user_id=client_id)
+			data = {
+				"status": "success",
+				"message": "Client Details Retrieved Successfully",
+				"data" : {
+					'first_name': client.user.first_name,
+					'last_name': client.user.last_name,
+					'email': client.user.email,
+					'phone': client.user.phone,
+					'date_of_birth': client.user.date_of_birth,
+					'role': client.user.role
+				}
+			}
+			return Response(data, status=status.HTTP_200_OK)
+		except (Client.DoesNotExist):
+			return Response({'error': 'User does not exist'}, status=status.HTTP_404_NOT_FOUND)
+
+
+class GetAgentDetail(APIView):
+	permission_classes = [IsAuthenticated]
+	authentication_classes = [JWTAuthentication]
+
+	def get(self, request, agent_id):
+		try:
+			agent = Agent.objects.get(user__user_id=agent_id)
+			data = {
+				"status": "success",
+				"message": "Agent Details Retrieved Successfully",
+				"data" : {
+					'first_name': agent.user.first_name,
+					'last_name': agent.user.last_name,
+					'email': agent.user.email,
+					'phone': agent.user.phone,
+					'is_verified': agent.is_verified,
+					'role': agent.user.role
+				}
+			}
+			return Response(data, status=status.HTTP_200_OK)
+		except (Agent.DoesNotExist):
+			return Response({'error': 'User does not exist'}, status=status.HTTP_404_NOT_FOUND)
+
+

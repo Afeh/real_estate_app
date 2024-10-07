@@ -79,8 +79,8 @@ class Client(models.Model):
 
 	user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='client_profile')
 	partner = models.BooleanField(default=False)
-	partner_age = models.IntegerField()
-	gender = models.CharField(max_length=20, choices=GENDER_CHOICES, default='male')
+	partner_age = models.IntegerField(default=0)
+	partner_gender = models.CharField(max_length=20, choices=GENDER_CHOICES, default='male')
 
 	def __str__(self):
 		return f"Client: {self.user.first_name}"

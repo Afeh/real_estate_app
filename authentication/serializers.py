@@ -1,14 +1,15 @@
 from rest_framework import serializers
-from .models import User
+from .models import User, Client, Agent
 
 
 class UserSerializer(serializers.ModelSerializer):
 	password = serializers.CharField(write_only=True)
 	confirm_password = serializers.CharField(write_only=True)
+	user_id = serializers.UUIDField(read_only=True)
 
 	class Meta:
 		model = User
-		fields = ['first_name', 'last_name', 'email', 'phone', 'gender', 'role', 'date_of_birth', 'location','password', 'confirm_password']
+		fields = ['user_id', 'first_name', 'last_name', 'email', 'phone', 'gender', 'role', 'date_of_birth', 'location','password', 'confirm_password']
 
 	def validate(self, data):
 		if data['password'] != data['confirm_password']:
@@ -20,8 +21,14 @@ class UserSerializer(serializers.ModelSerializer):
 	def create(self, validated_data):
 		validated_data.pop('confirm_password')
 		user = User.objects.create_user(**validated_data)
+		if user.role == "CLIENT":
+			Client.objects.create(user=user)
+
+		if user.role == "AGENT":
+			Agent.objects.create(user=user)
+
 		return user
-	
+
 
 class ForgotPasswordViewSerializer(serializers.Serializer):
 	email = serializers.EmailField()
