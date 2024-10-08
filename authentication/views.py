@@ -12,8 +12,10 @@ from django.core.mail import send_mail
 from django.utils.http import urlsafe_base64_encode, urlsafe_base64_decode
 from django.utils.encoding import force_bytes, force_str
 from django.urls import reverse
+from django.shortcuts import get_object_or_404
 from .models import OTP
 from .utils import generate_otp
+from uuid import UUID
 import random
 
 
@@ -288,3 +290,30 @@ class UpdateUserProfile(APIView):
 				'status': 'Bad Request',
 				'message': 'Error. User does not exist'
 			}, status=status.HTTP_404_NOT_FOUND)
+
+
+class DeleteUserProfile(APIView):
+	permission_classes = [IsAuthenticated]
+	authentication_classes = [JWTAuthentication]
+
+	def delete(self, request, user_id):
+
+		user = request.user
+		if (user.user_id != user_id):
+			try:
+				user = User.objects.get(user_id=user_id)
+				user.delete()
+				return Response({
+					"status": "success",
+					"message": "User Profile Deleted Successfully"
+				}, status=status.HTTP_200_OK)
+			except User.DoesNotExist:
+				return Response({
+					"status": "error",
+					"message": "User not found"
+				}, status=status.HTTP_404_NOT_FOUND)
+		else:
+			return Response({
+				"status": "error",
+				"message": "You do not have permission to delete this user"
+			}, status=status.HTTP_403_FORBIDDEN)
