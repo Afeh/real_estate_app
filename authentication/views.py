@@ -299,7 +299,7 @@ class DeleteUserProfile(APIView):
 	def delete(self, request, user_id):
 
 		user = request.user
-		if (user.user_id != user_id):
+		if (user.user_id == user_id):
 			try:
 				user = User.objects.get(user_id=user_id)
 				user.delete()
