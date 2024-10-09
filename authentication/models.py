@@ -53,6 +53,8 @@ class User(AbstractBaseUser):
 	location = models.CharField(max_length=255)
 	role = models.CharField(max_length=10, choices=[(role.name, role.value) for role in UserRole], default=UserRole.CLIENT.value)
 	created_at = models.DateTimeField(auto_now_add=True)
+	is_active = models.BooleanField(default=True)
+	is_verified = models.BooleanField(default=False)
 
 	is_admin = models.BooleanField(default=False)
 	is_staff = models.BooleanField(default=False)

@@ -98,10 +98,20 @@ WSGI_APPLICATION = 'real_estate.wsgi.application'
 # 	}
 # }
 
-DATABASES = {
-	'default' : dj_database_url.parse(env('DATABASE_URL'))
-}
+# DATABASES = {
+# 	'default' : dj_database_url.parse(env('DATABASE_URL'))
+# }
 
+DATABASES = {
+	'default': {
+		'ENGINE': 'django.db.backends.postgresql_psycopg2',
+		'NAME': env("DB_NAME"), 
+		'USER': env("DB_USER"),
+		'PASSWORD': env("DB_PASSWORD"),
+		'HOST': env("DB_HOST"), 
+		'PORT': env("DB_PORT")
+	}
+}
 
 
 # Password validation

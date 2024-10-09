@@ -92,6 +92,7 @@ class VerifyOTPView(APIView):
 
 		try:
 			otp = OTP.objects.filter(email=email, otp=otp_code).latest('created_at')
+			user = User.objects.get(email=email)
 
 			if otp.is_verified:
 				return Response({"message": "OTP has already been used"}, status=status.HTTP_400_BAD_REQUEST)
@@ -100,6 +101,10 @@ class VerifyOTPView(APIView):
 				return Response({"message":"OTP has expired"}, status=status.HTTP_400_BAD_REQUEST)
 			
 			otp.is_verified = True
+
+			user.is_verified = True
+
+			user.save()
 			otp.save()
 			return Response({"message": "OTP verified successfully"}, status=status.HTTP_200_OK)
 		
@@ -155,7 +160,7 @@ class PasswordResetView(APIView):
 			uid = force_str(urlsafe_base64_decode(uidb64))
 			user = User.objects.get(pk=uid)
 		except (User.DoesNotExist):
-			return Response({'error': 'Invalid token or user ID'}, status=status.HTTP_400_BAD_REQUEST)
+			return Response({'error': 'Invalid link'}, status=status.HTTP_400_BAD_REQUEST)
 
 		# To check if the token is valid
 		if not default_token_generator.check_token(user, token):
@@ -178,19 +183,28 @@ class GetClientDetail(APIView):
 	def get(self, request, client_id):
 		try:
 			client = Client.objects.get(user__user_id=client_id)
-			data = {
-				"status": "success",
-				"message": "Client Details Retrieved Successfully",
-				"data" : {
-					'first_name': client.user.first_name,
-					'last_name': client.user.last_name,
-					'email': client.user.email,
-					'phone': client.user.phone,
-					'date_of_birth': client.user.date_of_birth,
-					'role': client.user.role
+
+			if (client.user.is_verified and client.user.is_active):
+				data = {
+					"status": "success",
+					"message": "Client Details Retrieved Successfully",
+					"data" : {
+						'first_name': client.user.first_name,
+						'last_name': client.user.last_name,
+						'email': client.user.email,
+						'phone': client.user.phone,
+						'date_of_birth': client.user.date_of_birth,
+						'role': client.user.role
+					}
 				}
-			}
-			return Response(data, status=status.HTTP_200_OK)
+				return Response(data, status=status.HTTP_200_OK)
+			elif (client.user.is_verified == False):
+				return Response({'status': 'error',
+								'message': 'User is not verified'}, status=status.HTTP_400_BAD_REQUEST)
+			elif (client.user.is_active == False):
+				return Response({'status': 'error',
+								'message': 'Account in active'}, status=status.HTTP_400_BAD_REQUEST)
+
 		except (Client.DoesNotExist):
 			return Response({'error': 'User does not exist'}, status=status.HTTP_404_NOT_FOUND)
 
@@ -202,19 +216,29 @@ class GetAgentDetail(APIView):
 	def get(self, request, agent_id):
 		try:
 			agent = Agent.objects.get(user__user_id=agent_id)
-			data = {
-				"status": "success",
-				"message": "Agent Details Retrieved Successfully",
-				"data" : {
-					'first_name': agent.user.first_name,
-					'last_name': agent.user.last_name,
-					'email': agent.user.email,
-					'phone': agent.user.phone,
-					'is_verified': agent.is_verified,
-					'role': agent.user.role
+
+			if (agent.user.is_verified and agent.user.is_active):
+				data = {
+					"status": "success",
+					"message": "Agent Details Retrieved Successfully",
+					"data" : {
+						'first_name': agent.user.first_name,
+						'last_name': agent.user.last_name,
+						'email': agent.user.email,
+						'phone': agent.user.phone,
+						'is_verified': agent.is_verified,
+						'role': agent.user.role
+					}
 				}
-			}
-			return Response(data, status=status.HTTP_200_OK)
+				return Response(data, status=status.HTTP_200_OK)
+
+			elif (agent.user.is_verified == False):
+				return Response({'status': 'error',
+								'message': 'User is not verified'}, status=status.HTTP_400_BAD_REQUEST)
+			elif (agent.user.is_active == False):
+				return Response({'status': 'error',
+								'message': 'Account in active'}, status=status.HTTP_400_BAD_REQUEST)
+
 		except (Agent.DoesNotExist):
 			return Response({'error': 'User does not exist'}, status=status.HTTP_404_NOT_FOUND)
 
@@ -227,64 +251,75 @@ class UpdateUserProfile(APIView):
 		try:
 			user = User.objects.get(user_id=user_id)
 
-			user_serializer = UpdateProfileSerializer(user, data=request.data, partial=True)
-			if user_serializer.is_valid():
-				user_serializer.save()
-			else:
-				return Response(user_serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-			
-			if hasattr(user, 'client_profile'):
-				client = user.client_profile
-				client_serializer = ClientProfileUpdateSerializer(client, data=request.data, partial=True)
-				if client_serializer.is_valid():
-					client_serializer.save()
-					data = {
-						"status": "success",
-						"message": "Client Details Updated Successfully",
-						"data" : {
-							'first_name': client.user.first_name,
-							'last_name': client.user.last_name,
-							'email': client.user.email,
-							'phone': client.user.phone,
-							'date_of_birth': client.user.date_of_birth,
-							'partner': client.partner,
-							'partner_age': client.partner_age,
-							'partner_gender': client.partner_gender
-						}
-					}
+			if (user.is_verified and user.is_active):
+
+				user_serializer = UpdateProfileSerializer(user, data=request.data, partial=True)
+				if user_serializer.is_valid():
+					user_serializer.save()
 				else:
-					return Response(client_serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
-			elif hasattr(user, 'agent_profile'):
-				agent = user.agent_profile
-
-				if 'is_verified' in request.data:
-					if not request.user.is_admin:
-						return Response({
-							'status': 'Bad Request',
-							'message': 'You do not have permission to change verification status'
-							}, status=status.HTTP_403_FORBIDDEN
-						)
-					
-				agent_serializer = AgentProfileUpdateSerializer(agent, data=request.data, partial=True)
-				if agent_serializer.is_valid():
-					agent_serializer.save()
-					data = {
-						"status": "success",
-						"message": "Agent Details Updated Successfully",
-						"data" : {
-							'first_name': agent.user.first_name,
-							'last_name': agent.user.last_name,
-							'email': agent.user.email,
-							'phone': agent.user.phone,
-							'is_verified': agent.is_verified
+					return Response(user_serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+				
+				if hasattr(user, 'client_profile'):
+					client = user.client_profile
+					client_serializer = ClientProfileUpdateSerializer(client, data=request.data, partial=True)
+					if client_serializer.is_valid():
+						client_serializer.save()
+						data = {
+							"status": "success",
+							"message": "Client Details Updated Successfully",
+							"data" : {
+								'first_name': client.user.first_name,
+								'last_name': client.user.last_name,
+								'email': client.user.email,
+								'phone': client.user.phone,
+								'date_of_birth': client.user.date_of_birth,
+								'partner': client.partner,
+								'partner_age': client.partner_age,
+								'partner_gender': client.partner_gender
+							}
 						}
-					}
-				else:
-					return Response(agent_serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+					else:
+						return Response(client_serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-			return Response(data, status=status.HTTP_201_CREATED)
-		
+				elif hasattr(user, 'agent_profile'):
+					agent = user.agent_profile
+
+					if 'is_verified' in request.data:
+						if not request.user.is_admin:
+							return Response({
+								'status': 'Bad Request',
+								'message': 'You do not have permission to change verification status'
+								}, status=status.HTTP_403_FORBIDDEN
+							)
+						
+					agent_serializer = AgentProfileUpdateSerializer(agent, data=request.data, partial=True)
+					if agent_serializer.is_valid():
+						agent_serializer.save()
+						data = {
+							"status": "success",
+							"message": "Agent Details Updated Successfully",
+							"data" : {
+								'first_name': agent.user.first_name,
+								'last_name': agent.user.last_name,
+								'email': agent.user.email,
+								'phone': agent.user.phone,
+								'is_verified': agent.is_verified
+							}
+						}
+					else:
+						return Response(agent_serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+				return Response(data, status=status.HTTP_201_CREATED)
+
+
+			elif (agent.user.is_verified == False):
+				return Response({'status': 'error',
+								'message': 'User is not verified'}, status=status.HTTP_400_BAD_REQUEST)
+
+			elif (agent.user.is_active == False):
+				return Response({'status': 'error',
+								'message': 'Account in active'}, status=status.HTTP_400_BAD_REQUEST)
+
 		except User.DoesNotExist:
 			return Response({
 				'status': 'Bad Request',
@@ -292,28 +327,96 @@ class UpdateUserProfile(APIView):
 			}, status=status.HTTP_404_NOT_FOUND)
 
 
-class DeleteUserProfile(APIView):
+class DeactivateAccountView(APIView):
 	permission_classes = [IsAuthenticated]
 	authentication_classes = [JWTAuthentication]
 
-	def delete(self, request, user_id):
+	def patch(self, request, user_id):
+		try:
+			user = User.objects.get(user_id = user_id)
 
-		user = request.user
-		if (user.user_id == user_id):
-			try:
-				user = User.objects.get(user_id=user_id)
-				user.delete()
+			if (user.is_verified):
+				if ((str(request.user.user_id) == str(user_id)) or user.is_admin):
+					user.is_active = False
+					user.save()
+
+					return Response({
+						'status': 'success',
+						'message': 'User account deactivated successfully'
+					}, status=status.HTTP_200_OK)
+				else:
+					return Response({
+						'status': 'Forbidden',
+						'message': 'User does not have permission to deactivate account'
+					}, status=status.HTTP_403_FORBIDDEN)
+			else:
 				return Response({
-					"status": "success",
-					"message": "User Profile Deleted Successfully"
-				}, status=status.HTTP_200_OK)
-			except User.DoesNotExist:
-				return Response({
-					"status": "error",
-					"message": "User not found"
-				}, status=status.HTTP_404_NOT_FOUND)
-		else:
+						'status': 'error',
+						'message': 'User is not verified'
+					}, status=status.HTTP_400_BAD_REQUEST)
+
+
+		except User.DoesNotExist:
 			return Response({
-				"status": "error",
-				"message": "You do not have permission to delete this user"
-			}, status=status.HTTP_403_FORBIDDEN)
+				'status': 'Bad Request',
+				'message': 'Error. User does not exist'
+			}, status=status.HTTP_404_NOT_FOUND)
+
+
+class ReactivateAccountView(APIView):
+	def post(self, request):
+		email = request.data.get('email')
+
+		try:
+			user = User.objects.get(email=email)
+		except User.DoesNotExist:
+			return Response({
+				'status': 'error',
+				'message': 'User with this email does not exist'
+			}, status=status.HTTP_404_NOT_FOUND)
+		
+		token = default_token_generator.make_token(user)
+		uid = urlsafe_base64_encode(force_bytes(user.user_id))
+
+		reset_link = request.build_absolute_uri(
+			reverse('activate-account', kwargs={'uidb64': uid, 'token': token})
+		)
+
+		subject = "Account Reactivation Request"
+		send_mail(
+			subject="Account Reactivation Request from Real Estate Dev Team",
+			message=f'Click the link below to reset your password: \n {reset_link}',
+			from_email='realestate@example.com',
+			recipient_list= [email]
+		)
+
+		return Response({
+			'status': 'success',
+			'message': 'Reactivation Link Sent to your mail'
+		}, status=status.HTTP_200_OK)
+
+
+class ActivateAccountView(APIView):
+	def post(self, request, uidb64, token):
+		try:
+			uid = force_str(urlsafe_base64_decode(uidb64))
+			user = User.objects.get(user_id=uid)
+		except (User.DoesNotExist):
+			return Response({
+				'status': 'error',
+				'message':'Invalid link'
+			}, status=status.HTTP_400_BAD_REQUEST)
+		
+		if not default_token_generator.check_token(user, token):
+			return Response({
+				'status': 'error',
+				'message': 'Invalid/Expired token'
+			}, status=status.HTTP_400_BAD_REQUEST)
+		
+		user.is_active = True
+		user.save()
+
+		return Response({
+			'status': 'success',
+			'message': 'Account reactivated successfully'
+		}, status=status.HTTP_200_OK)

@@ -1,5 +1,5 @@
 from django.urls import path
-from .views import RegisterView, LoginView, SendOTPView, ResendOTPView, VerifyOTPView, ForgotPasswordView, PasswordResetView, GetAgentDetail, GetClientDetail, UpdateUserProfile, DeleteUserProfile
+from .views import RegisterView, LoginView, SendOTPView, ResendOTPView, VerifyOTPView, ForgotPasswordView, PasswordResetView, GetAgentDetail, GetClientDetail, UpdateUserProfile, DeactivateAccountView, ReactivateAccountView, ActivateAccountView
 from rest_framework_simplejwt.views import (
 	TokenObtainPairView,
 	TokenRefreshView
@@ -18,5 +18,7 @@ urlpatterns = [
 	path('client/<client_id>', GetClientDetail.as_view(), name='client_details'),
 	path('agent/<agent_id>', GetAgentDetail.as_view(), name='agent_details'),
 	path('update/<user_id>', UpdateUserProfile.as_view(), name='update_profile'),
-	path('delete/<user_id>', DeleteUserProfile.as_view(), name='delete_profile')
+	path('deactivate/<user_id>', DeactivateAccountView.as_view(), name='deactivate-account'),
+	path('reactivate', ReactivateAccountView.as_view(), name='reactivate-account'),
+	path('activate/<uidb64>/<token>', ActivateAccountView.as_view(), name='activate-account')
 ]
