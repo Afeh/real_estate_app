@@ -51,6 +51,8 @@ class User(AbstractBaseUser):
 	phone = models.CharField(max_length=255)
 	apartment_type = models.CharField(max_length=255)
 	location = models.CharField(max_length=255)
+	latitude = models.FloatField(null=True, blank=True)
+	longitude = models.FloatField(null=True, blank=True)
 	role = models.CharField(max_length=10, choices=[(role.name, role.value) for role in UserRole], default=UserRole.CLIENT.value)
 	created_at = models.DateTimeField(auto_now_add=True)
 	is_active = models.BooleanField(default=True)

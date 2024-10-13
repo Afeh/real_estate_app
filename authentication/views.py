@@ -139,7 +139,7 @@ class ForgotPasswordView(APIView):
 			uid = urlsafe_base64_encode(force_bytes(user.pk))
 
 			reset_link = request.build_absolute_uri(
-				reverse('password-reset', kwargs={'uidb64': uid, 'token': token})
+				reverse('password_reset', kwargs={'uidb64': uid, 'token': token})
 			)
 
 			subject = "Password Reset Request"
@@ -379,7 +379,7 @@ class ReactivateAccountView(APIView):
 		uid = urlsafe_base64_encode(force_bytes(user.user_id))
 
 		reset_link = request.build_absolute_uri(
-			reverse('activate-account', kwargs={'uidb64': uid, 'token': token})
+			reverse('activate_account', kwargs={'uidb64': uid, 'token': token})
 		)
 
 		subject = "Account Reactivation Request"
@@ -420,3 +420,28 @@ class ActivateAccountView(APIView):
 			'status': 'success',
 			'message': 'Account reactivated successfully'
 		}, status=status.HTTP_200_OK)
+
+
+class SaveUserLocation(APIView):
+	permission_classes = [IsAuthenticated]
+	authentication_classes = [JWTAuthentication]
+
+	def post(self, request):
+		latitude = request.data.get('latitude')
+		longitude = request.data.get('longitude')
+
+		if latitude and longitude:
+			user = request.user
+			user.latitude = latitude
+			user.longitude = longitude
+			user.save()
+
+			return Response({
+				'status': 'success',
+				'message': 'Location saved successfully'
+			}, status=status.HTTP_200_OK)
+		else:
+			return Response ({
+				'status': 'error',
+				'message': 'Latitude and Longitude required'
+			}, status=status.HTTP_400_BAD_REQUEST)
