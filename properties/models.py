@@ -3,52 +3,92 @@ from authentication.models import Agent, Owner
 import random
 import string
 
+STATES = {
+	'Abia': 'AB',
+	'Adamawa': 'AD',
+	'Akwa Ibom': 'AK',
+	'Anambra': 'AN',
+	'Bauchi': 'BA',
+	'Bayelsa': 'BY',
+	'Benue': 'BE',
+	'Borno': 'BO',
+	'Cross River': 'CR',
+	'Delta': 'DE',
+	'Ebonyi': 'EB',
+	'Edo': 'ED',
+	'Ekiti': 'EK',
+	'Enugu': 'EN',
+	'FCT': 'FC',
+	'Gombe': 'GO',
+	'Imo': 'IM',
+	'Jigawa': 'JI',
+	'Kaduna': 'KD',
+	'Kano': 'KN',
+	'Katsina': 'KT',
+	'Kebbi': 'KE',
+	'Kogi': 'KO',
+	'Kwara': 'KW',
+	'Lagos': 'LA',
+	'Nasarawa': 'NA',
+	'Niger': 'NI',
+	'Ogun': 'OG',
+	'Ondo': 'ON',
+	'Osun': 'OS',
+	'Oyo': 'OY',
+	'Plateau': 'PL',
+	'Rivers': 'RI',
+	'Sokoto': 'SO',
+	'Taraba': 'TA',
+	'Yobe': 'YO',
+	'Zamfara': 'ZA'
+}
 
 NIGERIAN_STATES = [
-	('AB', 'Abia'),
-	('AD', 'Adamawa'),
-	('AK', 'Akwa Ibom'),
-	('AN', 'Anambra'),
-	('BA', 'Bauchi'),
-	('BY', 'Bayelsa'),
-	('BE', 'Benue'),
-	('BO', 'Borno'),
-	('CR', 'Cross River'),
-	('DE', 'Delta'),
-	('EB', 'Ebonyi'),
-	('ED', 'Edo'),
-	('EK', 'Ekiti'),
-	('EN', 'Enugu'),
-	('GO', 'Gombe'),
-	('IM', 'Imo'),
-	('JI', 'Jigawa'),
-	('KD', 'Kaduna'),
-	('KN', 'Kano'),
-	('KT', 'Katsina'),
-	('KE', 'Kebbi'),
-	('KO', 'Kogi'),
-	('KW', 'Kwara'),
-	('LA', 'Lagos'),
-	('NA', 'Nasarawa'),
-	('NI', 'Niger'),
-	('OG', 'Ogun'),
-	('ON', 'Ondo'),
-	('OS', 'Osun'),
-	('OY', 'Oyo'),
-	('PL', 'Plateau'),
-	('RV', 'Rivers'),
-	('SO', 'Sokoto'),
-	('TA', 'Taraba'),
-	('YO', 'Yobe'),
-	('ZA', 'Zamfara'),
-	('FC', 'Federal Capital Territory (Abuja)'),
+	('Abia', 'AB'),
+	('Adamawa', 'AD'),
+	('Akwa Ibom', 'AK'),
+	('Anambra', 'AN'),
+	('Bauchi', 'BA'),
+	('Bayelsa', 'BY'),
+	('Benue', 'BE'),
+	('Borno', 'BO'),
+	('Cross River', 'CR'),
+	('Delta', 'DE'),
+	('Ebonyi', 'EB'),
+	('Edo', 'ED'),
+	('Ekiti', 'EK'),
+	('Enugu', 'EN'),
+	('Gombe', 'GO'),
+	('Imo', 'IM'),
+	('Jigawa', 'JI'),
+	('Kaduna', 'KD'),
+	('Kano', 'KN'),
+	('Katsina', 'KT'),
+	('Kebbi', 'KE'),
+	('Kogi', 'KO'),
+	('Kwara', 'KW'),
+	('Lagos', 'LA'),
+	('Nasarawa', 'NA'),
+	('Niger', 'NI'),
+	('Ogun', 'OG'),
+	('Ondo', 'ON'),
+	('Osun', 'OS'),
+	('Oyo', 'OY'),
+	('Plateau', 'PL'),
+	('Rivers', 'RV'),
+	('Sokoto', 'SO'),
+	('Taraba', 'TA'),
+	('Yobe', 'YO'),
+	('Zamfara', 'ZA'),
+	('Federal Capital Territory', 'FC'),
 ]
 
 
-def generate_property_id(state_abbreviation, length=4):
+
+def generate_property_id(state, length=4):
 	random_char = ''.join(random.choices(string.ascii_uppercase + string.digits, k=length))
 
-	return f"{state_abbreviation}-{random_char}"
+	return f"{STATES[state]}-{random_char}"
 
 
 
@@ -56,7 +96,7 @@ class Property(models.Model):
 	property_id = models.CharField(max_length=10, primary_key=True, unique=True)
 	name = models.CharField(max_length=255)
 	address = models.TextField()
-	state = models.CharField(max_length=2, choices=NIGERIAN_STATES)
+	state = models.CharField(max_length=50, choices=NIGERIAN_STATES)
 	longitude = models.FloatField(null=True, blank=True)
 	latitude = models.FloatField(null=True, blank=True)
 	is_verified = models.BooleanField(default=False)

@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import User, Client, Agent
+from .models import User, Client, Agent, Owner
 
 
 class UserSerializer(serializers.ModelSerializer):
@@ -26,6 +26,9 @@ class UserSerializer(serializers.ModelSerializer):
 
 		if user.role == "AGENT":
 			Agent.objects.create(user=user)
+
+		if user.role == "OWNER":
+			Owner.objects.create(user=user)
 
 		return user
 
