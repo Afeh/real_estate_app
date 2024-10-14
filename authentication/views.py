@@ -312,11 +312,11 @@ class UpdateUserProfile(APIView):
 				return Response(data, status=status.HTTP_201_CREATED)
 
 
-			elif (agent.user.is_verified == False):
+			elif (user.is_verified == False):
 				return Response({'status': 'error',
 								'message': 'User is not verified'}, status=status.HTTP_400_BAD_REQUEST)
 
-			elif (agent.user.is_active == False):
+			elif (user.is_active == False):
 				return Response({'status': 'error',
 								'message': 'Account in active'}, status=status.HTTP_400_BAD_REQUEST)
 
