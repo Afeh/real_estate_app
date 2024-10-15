@@ -161,4 +161,24 @@ class PropertyListView(APIView):
 		return distance <= radius_km
 
 
-class 
+class GetPropertyView(APIView):
+	permission_classes = [IsAuthenticated]
+	authentication_classes = [JWTAuthentication]
+
+	def get(self, request, id):
+		try:
+			property_object = Property.objects.get(property_id=id)
+
+			data = {
+				'status': 'success',
+				'message': 'Property retrieved',
+				'data': {
+					'property': PropertySerializer(property_object).data
+				}
+			}
+			return Response(data, status=status.HTTP_200_OK)
+		except Property.DoesNotExist:
+			return Response({
+				'status': 'error',
+				'message': 'Property not found'
+			}, status=status.HTTP_404_NOT_FOUND)
