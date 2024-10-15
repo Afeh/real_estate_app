@@ -96,6 +96,7 @@ class Property(models.Model):
 	property_id = models.CharField(max_length=10, primary_key=True, unique=True)
 	name = models.CharField(max_length=255)
 	address = models.TextField()
+	city = models.CharField(max_length=255)
 	state = models.CharField(max_length=50, choices=NIGERIAN_STATES)
 	longitude = models.FloatField(null=True, blank=True)
 	latitude = models.FloatField(null=True, blank=True)

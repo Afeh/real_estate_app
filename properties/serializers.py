@@ -54,7 +54,7 @@ class PropertySerializer(serializers.ModelSerializer):
 
 	class Meta:
 		model = Property
-		fields = ['property_id', 'state', 'name', 'address', 'longitude', 'latitude', 'price', 'amenities', 'bedroom_number', 'bathroom_number', 'description', 'agent_full_name','agent_id', 'owner_full_name', 'owner_id']
+		fields = ['property_id', 'state', 'city', 'name', 'address', 'longitude', 'latitude', 'price', 'amenities', 'bedroom_number', 'bathroom_number', 'description', 'agent_full_name','agent_id', 'owner_full_name', 'owner_id']
 
 	def get_agent_full_name(self, obj):
 		return f"{obj.agent.user.first_name} {obj.agent.user.last_name}"

@@ -49,7 +49,7 @@ class SetNewPasswordViewSerializer(serializers.Serializer):
 class UpdateProfileSerializer(serializers.ModelSerializer):
 	class Meta:
 		model = User
-		fields = ['first_name', 'last_name', 'email', 'apartment_type', 'location']
+		fields = ['first_name', 'last_name', 'email', 'apartment_type', 'location', 'latitude', 'longitude']
 
 		def update(self, instance, validated_data):
 			for attr, value in validated_data.items():
