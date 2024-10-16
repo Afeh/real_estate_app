@@ -3,9 +3,8 @@ from rest_framework.views import APIView
 from rest_framework_simplejwt.authentication import JWTAuthentication
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
-from .serializers import PropertySerializer
+from .serializers import PropertySerializer, EditPropertySerializer
 from authentication.models import Agent, Owner
-from django.db.models import Q
 from .models import Property
 from math import radians, sin, cos, sqrt, atan2
 
@@ -56,6 +55,7 @@ class CreatePropertyView(APIView):
 					'status': 'error',
 					'message': 'You are not authorized to create a property'
 				}, status=status.HTTP_403_FORBIDDEN)
+
 		elif (user.is_verified == False):
 				return Response({
 						'status': 'error',
@@ -87,6 +87,7 @@ class PropertyListView(APIView):
 		max_bedrooms = request.query_params.get('max_bedrooms')
 		min_bathrooms = request.query_params.get('min_bathrooms')
 		max_bathrooms = request.query_params.get('max_bathrooms')
+		availability = request.query_params.get('availability')
 
 		# latitude = request.query_params.get('latitude')
 		# longitude = request.query_params.get('longitude')
@@ -116,6 +117,9 @@ class PropertyListView(APIView):
 			queryset = queryset.filter(bathroom_number__gte=min_bathrooms)
 		if max_bathrooms:
 			queryset = queryset.filter(bathroom_number__lte=max_bathrooms)
+		if availability:
+			is_available = availability.lower() == 'true'
+			queryset = queryset.filter(is_available=is_available)
 
 		if (user.latitude and user.longitude):
 			user_latitude = float(user.latitude)
@@ -207,3 +211,60 @@ class DeletePropertyView(APIView):
 				'status': 'error',
 				'message': 'You do not have the permission to delete a property'
 			}, status = status.HTTP_403_FORBIDDEN)
+
+
+class EditPropertyView(APIView):
+	permission_classes = [IsAuthenticated]
+	authentication_classes = [JWTAuthentication]
+
+	def patch(self, request, id):
+
+		if (request.user.is_verified and request.user.is_active):
+			try:
+				property_object = Property.objects.get(pk=id)
+
+				if ((((property_object.agent.pk == request.user.user_id) and property_object.agent.is_verified) or (property_object.owner.pk == request.user.user_id)) or request.user.is_admin):
+			
+					if 'is_verified' in request.data:
+						if not request.user.is_admin:
+							return Response({
+								'status': 'Bad request',
+								'message': 'You do not have the permission to change property verification status'
+							}, status=status.HTTP_403_FORBIDDEN)
+
+					property_serializer = EditPropertySerializer(property_object, data=request.data, partial=True)
+		
+					if property_serializer.is_valid():
+						property_serializer.save()
+
+						data = {
+							'status': 'success',
+							'message': 'Property Edited and Saved successfully',
+							'data': {
+								'property': PropertySerializer(property_object).data
+							}
+						}
+						return Response(data, status=status.HTTP_200_OK)
+
+					else:
+						return Response(property_serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+				else:
+					return Response({
+						'status': 'error',
+						'message': 'User not authorized to make changes to Property'
+					}, status=status.HTTP_403_FORBIDDEN)
+
+			except Property.DoesNotExist:
+				return Response({
+					'status': 'Bad Request',
+					'message': 'Error, Property does not exist'
+				}, status=status.HTTP_404_NOT_FOUND)
+
+		elif (request.user.is_verified == False):
+			return Response({'status': 'error',
+						'message': 'User is not verified'}, status=status.HTTP_400_BAD_REQUEST)
+
+		elif (request.user.is_active == False):
+			return Response({'status': 'error',
+							'message': 'Account in active'}, status=status.HTTP_400_BAD_REQUEST)

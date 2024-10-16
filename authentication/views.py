@@ -181,10 +181,10 @@ class GetClientDetail(APIView):
 	authentication_classes = [JWTAuthentication]
 
 	def get(self, request, client_id):
-		try:
-			client = Client.objects.get(user__user_id=client_id)
+		if (request.user.is_verified and request.user.is_active):
+			try:
+				client = Client.objects.get(user__user_id=client_id)
 
-			if (client.user.is_verified and client.user.is_active):
 				data = {
 					"status": "success",
 					"message": "Client Details Retrieved Successfully",
@@ -198,15 +198,18 @@ class GetClientDetail(APIView):
 					}
 				}
 				return Response(data, status=status.HTTP_200_OK)
-			elif (client.user.is_verified == False):
-				return Response({'status': 'error',
-								'message': 'User is not verified'}, status=status.HTTP_400_BAD_REQUEST)
-			elif (client.user.is_active == False):
-				return Response({'status': 'error',
-								'message': 'Account in active'}, status=status.HTTP_400_BAD_REQUEST)
+		
+			except (Client.DoesNotExist):
+				return Response({'error': 'User does not exist'}, status=status.HTTP_404_NOT_FOUND)
+	
+		elif (request.user.is_verified == False):
+			return Response({'status': 'error',
+						'message': 'User is not verified'}, status=status.HTTP_400_BAD_REQUEST)
 
-		except (Client.DoesNotExist):
-			return Response({'error': 'User does not exist'}, status=status.HTTP_404_NOT_FOUND)
+		elif (request.user.is_active == False):
+			return Response({'status': 'error',
+							'message': 'Account in active'}, status=status.HTTP_400_BAD_REQUEST)
+
 
 
 class GetAgentDetail(APIView):
@@ -214,10 +217,10 @@ class GetAgentDetail(APIView):
 	authentication_classes = [JWTAuthentication]
 
 	def get(self, request, agent_id):
-		try:
-			agent = Agent.objects.get(user__user_id=agent_id)
+		if (request.user.is_verified and request.user.is_active):
+			try:
+				agent = Agent.objects.get(user__user_id=agent_id)
 
-			if (agent.user.is_verified and agent.user.is_active):
 				data = {
 					"status": "success",
 					"message": "Agent Details Retrieved Successfully",
@@ -232,15 +235,16 @@ class GetAgentDetail(APIView):
 				}
 				return Response(data, status=status.HTTP_200_OK)
 
-			elif (agent.user.is_verified == False):
-				return Response({'status': 'error',
-								'message': 'User is not verified'}, status=status.HTTP_400_BAD_REQUEST)
-			elif (agent.user.is_active == False):
-				return Response({'status': 'error',
-								'message': 'Account in active'}, status=status.HTTP_400_BAD_REQUEST)
+			except (Agent.DoesNotExist):
+				return Response({'error': 'User does not exist'}, status=status.HTTP_404_NOT_FOUND)
+	
+		elif (request.user.is_verified == False):
+			return Response({'status': 'error',
+							'message': 'User is not verified'}, status=status.HTTP_400_BAD_REQUEST)
 
-		except (Agent.DoesNotExist):
-			return Response({'error': 'User does not exist'}, status=status.HTTP_404_NOT_FOUND)
+		elif (request.user.is_active == False):
+			return Response({'status': 'error',
+							'message': 'Account in active'}, status=status.HTTP_400_BAD_REQUEST)	
 
 
 class UpdateUserProfile(APIView):
@@ -248,10 +252,9 @@ class UpdateUserProfile(APIView):
 	authentication_classes = [JWTAuthentication]
 
 	def patch(self, request, user_id):
-		try:
-			user = User.objects.get(user_id=user_id)
-
-			if (user.is_verified and user.is_active):
+		if (request.user.is_verified and request.user.is_active):
+			try:
+				user = User.objects.get(user_id=user_id)
 
 				user_serializer = UpdateProfileSerializer(user, data=request.data, partial=True)
 				if user_serializer.is_valid():
@@ -311,20 +314,19 @@ class UpdateUserProfile(APIView):
 
 				return Response(data, status=status.HTTP_201_CREATED)
 
+			except User.DoesNotExist:
+				return Response({
+					'status': 'Bad Request',
+					'message': 'Error. User does not exist'
+				}, status=status.HTTP_404_NOT_FOUND)
 
-			elif (user.is_verified == False):
-				return Response({'status': 'error',
-								'message': 'User is not verified'}, status=status.HTTP_400_BAD_REQUEST)
+		elif (request.user.is_verified == False):
+			return Response({'status': 'error',
+							'message': 'User is not verified'}, status=status.HTTP_400_BAD_REQUEST)
 
-			elif (user.is_active == False):
-				return Response({'status': 'error',
-								'message': 'Account in active'}, status=status.HTTP_400_BAD_REQUEST)
-
-		except User.DoesNotExist:
-			return Response({
-				'status': 'Bad Request',
-				'message': 'Error. User does not exist'
-			}, status=status.HTTP_404_NOT_FOUND)
+		elif (request.user.is_active == False):
+			return Response({'status': 'error',
+							'message': 'Account in active'}, status=status.HTTP_400_BAD_REQUEST)
 
 
 class DeactivateAccountView(APIView):
@@ -332,10 +334,11 @@ class DeactivateAccountView(APIView):
 	authentication_classes = [JWTAuthentication]
 
 	def patch(self, request, user_id):
-		try:
-			user = User.objects.get(user_id = user_id)
 
-			if (user.is_verified):
+		if (request.user.is_verified):
+			try:
+				user = User.objects.get(user_id = user_id)
+				
 				if ((str(request.user.user_id) == str(user_id)) or user.is_admin):
 					user.is_active = False
 					user.save()
@@ -349,18 +352,19 @@ class DeactivateAccountView(APIView):
 						'status': 'Forbidden',
 						'message': 'User does not have permission to deactivate account'
 					}, status=status.HTTP_403_FORBIDDEN)
-			else:
+
+			except User.DoesNotExist:
 				return Response({
-						'status': 'error',
-						'message': 'User is not verified'
-					}, status=status.HTTP_400_BAD_REQUEST)
-
-
-		except User.DoesNotExist:
+					'status': 'Bad Request',
+					'message': 'Error. User does not exist'
+				}, status=status.HTTP_404_NOT_FOUND)
+		
+		else:
 			return Response({
-				'status': 'Bad Request',
-				'message': 'Error. User does not exist'
-			}, status=status.HTTP_404_NOT_FOUND)
+					'status': 'error',
+					'message': 'User is not verified'
+				}, status=status.HTTP_400_BAD_REQUEST)
+
 
 
 class ReactivateAccountView(APIView):

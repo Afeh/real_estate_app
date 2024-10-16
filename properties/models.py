@@ -100,6 +100,7 @@ class Property(models.Model):
 	state = models.CharField(max_length=50, choices=NIGERIAN_STATES)
 	longitude = models.FloatField(null=True, blank=True)
 	latitude = models.FloatField(null=True, blank=True)
+	is_available = models.BooleanField(default=True)
 	is_verified = models.BooleanField(default=False)
 	price = models.DecimalField(max_digits=10, decimal_places=2)
 	amenities = models.TextField(max_length=255)

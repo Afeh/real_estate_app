@@ -45,6 +45,7 @@ NIGERIAN_STATES = {
 class PropertySerializer(serializers.ModelSerializer):
 
 	property_id = serializers.CharField(read_only=True)
+	is_available = serializers.BooleanField(read_only=True)
 	state = serializers.CharField()
 	agent_id = serializers.UUIDField()
 	owner_id = serializers.UUIDField()
@@ -54,7 +55,7 @@ class PropertySerializer(serializers.ModelSerializer):
 
 	class Meta:
 		model = Property
-		fields = ['property_id', 'state', 'city', 'name', 'address', 'longitude', 'latitude', 'price', 'amenities', 'bedroom_number', 'bathroom_number', 'description', 'agent_full_name','agent_id', 'owner_full_name', 'owner_id']
+		fields = ['property_id', 'is_available', 'state', 'city', 'name', 'address', 'longitude', 'latitude', 'price', 'amenities', 'bedroom_number', 'bathroom_number', 'description', 'agent_full_name','agent_id', 'owner_full_name', 'owner_id']
 
 	def get_agent_full_name(self, obj):
 		return f"{obj.agent.user.first_name} {obj.agent.user.last_name}"
@@ -74,3 +75,29 @@ class PropertySerializer(serializers.ModelSerializer):
 			return state_full_name
 		else:
 			raise serializers.ValidationError(f"Invalid state name: {state_full_name}")
+
+
+class EditPropertySerializer(serializers.ModelSerializer):
+
+	agent_id = serializers.UUIDField()
+	owner_id = serializers.UUIDField()
+	agent_full_name = serializers.SerializerMethodField()
+	owner_full_name = serializers.SerializerMethodField()
+
+	class Meta:
+		model = Property
+		fields = ['name', 'price', 'amenities', 'description', 'is_verified', 'is_available', 'agent_full_name', 'agent_id', 'owner_full_name','owner_id']
+
+		def update(self, instance, validated_data):
+			for attr, value, in validated_data.items():
+				setattr(instance, attr, value)
+			instance.save()
+			return instance
+
+	def get_agent_full_name(self, obj):
+		return f"{obj.agent.user.first_name} {obj.agent.user.last_name}"
+	
+	def get_owner_full_name(self, obj):
+		return f"{obj.owner.user.first_name} {obj.owner.user.last_name}"
+	
+
