@@ -182,3 +182,28 @@ class GetPropertyView(APIView):
 				'status': 'error',
 				'message': 'Property not found'
 			}, status=status.HTTP_404_NOT_FOUND)
+
+
+class DeletePropertyView(APIView):
+	permission_classes = [IsAuthenticated]
+	authentication_classes = [JWTAuthentication]
+
+	def delete(self, request, id):
+		if (request.user.is_admin):
+			try:
+				property_object = Property.objects.get(pk=id)
+				property_object.delete()
+				return Response({
+					'status': 'success',
+					'message': 'Property was deleted successfully'
+				}, status=status.HTTP_200_OK)
+			except Property.DoesNotExist:
+				return Response({
+					'status': 'error',
+					'message': 'Property with that id does not exist'
+				}, status=status.HTTP_404_NOT_FOUND)
+		else:
+			return Response({
+				'status': 'error',
+				'message': 'You do not have the permission to delete a property'
+			}, status = status.HTTP_403_FORBIDDEN)
