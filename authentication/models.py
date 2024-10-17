@@ -95,7 +95,7 @@ class OTP(models.Model):
 class Client(models.Model):
 	GENDER_CHOICES = (('male', 'Male'), ('female', 'Female'))
 
-	user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='client_profile')
+	user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='client_profile', primary_key=True)
 	partner = models.BooleanField(default=False)
 	partner_age = models.IntegerField(default=0)
 	partner_gender = models.CharField(max_length=20, choices=GENDER_CHOICES, default='male')

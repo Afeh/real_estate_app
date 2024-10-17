@@ -1,5 +1,5 @@
 from django.db import models
-from authentication.models import Agent, Owner
+from authentication.models import Agent, Owner, Client
 import random
 import string
 
@@ -102,6 +102,7 @@ class Property(models.Model):
 	latitude = models.FloatField(null=True, blank=True)
 	is_available = models.BooleanField(default=True)
 	is_verified = models.BooleanField(default=False)
+	average_rating = models.DecimalField(max_digits=2, decimal_places=1, default=0.0)
 	price = models.DecimalField(max_digits=10, decimal_places=2)
 	amenities = models.TextField(max_length=255)
 	bedroom_number = models.IntegerField()
@@ -133,5 +134,24 @@ class PropertyVideo(models.Model):
 
 	def __str__(self):
 		return f"Video for {self.property.name}"
-	
 
+
+class PropertyReviews(models.Model):
+	property = models.ForeignKey(Property, on_delete=models.CASCADE, related_name="reviews")
+	created_by = models.ForeignKey(Client, on_delete=models.CASCADE)
+	caption = models.TextField()
+	rating = models.IntegerField()
+	comment = models.TextField()
+	is_verified = models.BooleanField(default=False)
+	created_at = models.DateTimeField(auto_now_add=True)
+
+
+	def save(self, *args, **kwargs):
+		super(PropertyReviews, self).save(*args, **kwargs)
+		self.update_property_average_rating()
+
+	def update_property_average_rating(self):
+		reviews = PropertyReviews.objects.filter(property=self.property)
+		avg_rating = reviews.aggregate(models.Avg('rating'))['rating__avg']
+		self.property.average_rating = avg_rating or 0.0
+		self.property.save()

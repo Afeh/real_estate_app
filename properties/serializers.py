@@ -1,5 +1,6 @@
 from rest_framework import serializers
-from .models import Property
+from .models import Property, PropertyReviews
+from django.db.models import Avg
 
 NIGERIAN_STATES = {
 	'Abia': 'AB',
@@ -49,19 +50,26 @@ class PropertySerializer(serializers.ModelSerializer):
 	state = serializers.CharField()
 	agent_id = serializers.UUIDField()
 	owner_id = serializers.UUIDField()
+	average_rating = serializers.SerializerMethodField
 
 	agent_full_name = serializers.SerializerMethodField()
 	owner_full_name = serializers.SerializerMethodField()
 
 	class Meta:
 		model = Property
-		fields = ['property_id', 'is_available', 'state', 'city', 'name', 'address', 'longitude', 'latitude', 'price', 'amenities', 'bedroom_number', 'bathroom_number', 'description', 'agent_full_name','agent_id', 'owner_full_name', 'owner_id']
+		fields = ['property_id', 'is_available', 'state', 'city', 'name', 'address', 'longitude', 'latitude', 'price', 'average_rating', 'amenities', 'bedroom_number', 'bathroom_number', 'description', 'agent_full_name','agent_id', 'owner_full_name', 'owner_id']
 
 	def get_agent_full_name(self, obj):
 		return f"{obj.agent.user.first_name} {obj.agent.user.last_name}"
 	
 	def get_owner_full_name(self, obj):
 		return f"{obj.owner.user.first_name} {obj.owner.user.last_name}"
+	
+	def get_average_rating(self, obj):
+		reviews = PropertyReviews.objects.filter(property=obj)
+		avg_rating = reviews.aggregate(Avg('rating'))['rating__avg']
+		return avg_rating or 0.0
+
 
 	def to_internal_value(self, data):
 		data = super().to_internal_value(data)
@@ -75,6 +83,7 @@ class PropertySerializer(serializers.ModelSerializer):
 			return state_full_name
 		else:
 			raise serializers.ValidationError(f"Invalid state name: {state_full_name}")
+
 
 
 class EditPropertySerializer(serializers.ModelSerializer):
@@ -99,5 +108,32 @@ class EditPropertySerializer(serializers.ModelSerializer):
 	
 	def get_owner_full_name(self, obj):
 		return f"{obj.owner.user.first_name} {obj.owner.user.last_name}"
+
+
+class CreatePropertyReviewSerializer(serializers.ModelSerializer):
+
+	RATING_CHOICES = [1, 2, 3, 4, 5]
+
+	property_id = serializers.CharField()
+	created_by = serializers.SerializerMethodField()
+	rating = serializers.IntegerField()
+	created_at = serializers.DateTimeField(read_only=True)
+
+	class Meta:
+		model = PropertyReviews
+		fields = ['caption', 'comment', 'rating', 'created_at', 'created_by', 'property_id']
+
+	def get_created_by(self, obj):
+		return f"{obj.created_by.user.first_name} {obj.created_by.user.last_name}"
 	
+
+	def validate_rating(self, value):
+		if value <= 0:
+			raise serializers.ValidationError("Rating must be positive")
+
+		if value in self.RATING_CHOICES:
+			return value
+		else:
+			raise serializers.ValidationError("Rating must be between 1 to 5")
+
 

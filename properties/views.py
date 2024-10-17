@@ -3,10 +3,11 @@ from rest_framework.views import APIView
 from rest_framework_simplejwt.authentication import JWTAuthentication
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
-from .serializers import PropertySerializer, EditPropertySerializer
+from .serializers import PropertySerializer, EditPropertySerializer, CreatePropertyReviewSerializer
 from authentication.models import Agent, Owner
-from .models import Property
+from .models import Property, PropertyReviews
 from math import radians, sin, cos, sqrt, atan2
+
 
 
 class CreatePropertyView(APIView):
@@ -88,6 +89,7 @@ class PropertyListView(APIView):
 		min_bathrooms = request.query_params.get('min_bathrooms')
 		max_bathrooms = request.query_params.get('max_bathrooms')
 		availability = request.query_params.get('availability')
+		rating = request.query_params.get('rating')
 
 		# latitude = request.query_params.get('latitude')
 		# longitude = request.query_params.get('longitude')
@@ -117,6 +119,8 @@ class PropertyListView(APIView):
 			queryset = queryset.filter(bathroom_number__gte=min_bathrooms)
 		if max_bathrooms:
 			queryset = queryset.filter(bathroom_number__lte=max_bathrooms)
+		if rating:
+			queryset = queryset.filter(average_rating__gte=rating)
 		if availability:
 			is_available = availability.lower() == 'true'
 			queryset = queryset.filter(is_available=is_available)
@@ -135,6 +139,7 @@ class PropertyListView(APIView):
 			}, status=status.HTTP_404_NOT_FOUND)
 
 		serializer = PropertySerializer(queryset, many=True)
+
 
 		return Response({
 			'status': 'success',
@@ -165,6 +170,7 @@ class PropertyListView(APIView):
 		return distance <= radius_km
 
 
+
 class GetPropertyView(APIView):
 	permission_classes = [IsAuthenticated]
 	authentication_classes = [JWTAuthentication]
@@ -172,12 +178,14 @@ class GetPropertyView(APIView):
 	def get(self, request, id):
 		try:
 			property_object = Property.objects.get(property_id=id)
+			reviews = PropertyReviews.objects.filter(property=property_object)
 
 			data = {
 				'status': 'success',
 				'message': 'Property retrieved',
 				'data': {
-					'property': PropertySerializer(property_object).data
+					'property': PropertySerializer(property_object).data,
+					'reviews': CreatePropertyReviewSerializer(reviews, many=True).data
 				}
 			}
 			return Response(data, status=status.HTTP_200_OK)
@@ -186,6 +194,7 @@ class GetPropertyView(APIView):
 				'status': 'error',
 				'message': 'Property not found'
 			}, status=status.HTTP_404_NOT_FOUND)
+
 
 
 class DeletePropertyView(APIView):
@@ -260,6 +269,60 @@ class EditPropertyView(APIView):
 					'status': 'Bad Request',
 					'message': 'Error, Property does not exist'
 				}, status=status.HTTP_404_NOT_FOUND)
+
+		elif (request.user.is_verified == False):
+			return Response({'status': 'error',
+						'message': 'User is not verified'}, status=status.HTTP_400_BAD_REQUEST)
+
+		elif (request.user.is_active == False):
+			return Response({'status': 'error',
+							'message': 'Account in active'}, status=status.HTTP_400_BAD_REQUEST)
+
+
+class CreatePropertyReview(APIView):
+	permission_classes = [IsAuthenticated]
+	authentication_classes = [JWTAuthentication]
+
+	def post(self, request):
+		user = request.user
+
+		if (user.is_verified and user.is_active):
+			if hasattr(user, 'client_profile'):
+
+				client = user.client_profile
+	
+				serializer = CreatePropertyReviewSerializer(data=request.data)
+
+				if serializer.is_valid():
+					property_id = serializer.validated_data['property_id']
+
+					try:
+						property_instance = Property.objects.get(pk=property_id)
+
+						property_serializer = serializer.save(property=property_instance, created_by=client)
+
+						data = {
+							'status': 'success',
+							'message': 'Property review sucessfully dropped',
+							'data' : {
+								'review': CreatePropertyReviewSerializer(property_serializer).data
+							}
+						}
+						return Response(data, status=status.HTTP_201_CREATED)
+
+					except Property.DoesNotExist:
+						return Response({
+							'status': 'error',
+							'message': 'Property not found'
+						}, status=status.HTTP_404_NOT_FOUND)
+				else:
+					return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+			else:
+				return Response({
+					'status': 'Forbidden',
+					'message': 'Only clients can drop property reviews'
+				}, status=status.HTTP_403_FORBIDDEN)
 
 		elif (request.user.is_verified == False):
 			return Response({'status': 'error',
