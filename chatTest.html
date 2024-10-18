@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<title>WebSocket Chat</title>
+		<style>
+			#chat-messages div {
+				margin-bottom: 10px;
+			}
+
+			#chat-messages strong {
+				font-weight: bold;
+			}
+		</style>
+	</head>
+	<body>
+		<h1>Chat</h1>
+		<div id="messages"></div>
+		<div id="chat-messages"></div>
+		<input
+			type="text"
+			id="messageInput"
+			placeholder="Type your message..."
+		/>
+		<button id="sendMessage">Send</button>
+
+		<script>
+			const token =
+				"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ0b2tlbl90eXBlIjoiYWNjZXNzIiwiZXhwIjoxNzI5MjkwNDQyLCJpYXQiOjE3MjkyODk1NDIsImp0aSI6IjM1ODBkNjQzNDk3ZTQxZmQ4Njk3NWRkMDY5ZjgxZTYzIiwidXNlcl9pZCI6IjJhY2NmMGI1LWY2ZTgtNDUxOC04MzVlLWFjYzQxMzJlZWI4YiJ9.M7WjosTu9F4vUaWN7AqbM50yZlgWqUBcdxVH4GNFqM8"; 
+
+			// Create WebSocket connection with the token as a query parameter
+			// ws://localhost:8000/ws/chats/<conversation_id>/connect/?token=<your_jwt_token>&recipient_id=<recipient_user_id>
+			const socket = new WebSocket(
+				`ws://127.0.0.1:8000/ws/chats/09a39d44-1157-4fcc-874f-6a758b93606f/connect/?token=${token}&recipient_id=222c6655-7b80-4cdb-b64e-c2f1b68ca3f9`
+			);
+
+			// Connection opened
+			socket.onopen = function (e) {
+				console.log("Connected to the WebSocket server.");
+			};
+
+			// Listen for messages
+			socket.onmessage = function (e) {
+				const data = JSON.parse(e.data);
+				console.log(data);
+				const message = data.message;
+				const sender = data.sender;
+
+				const senderName = sender ? `${sender}` : 'Anonymous';
+
+				// Display the message along with the sender's details
+				const messageContainer =
+					document.getElementById("chat-messages");
+				const newMessage = document.createElement("div");
+				newMessage.innerHTML = `<strong>${senderName}</strong>: ${message}`;
+				messageContainer.appendChild(newMessage);
+			};
+
+			// Send message to server
+			document.getElementById("sendMessage").onclick = function () {
+				const message = document.getElementById("messageInput").value;
+				socket.send(
+					JSON.stringify({
+						message: message,
+					})
+				);
+			};
+
+			// Handle connection close
+			socket.onclose = function (event) {
+				console.log("Disconnected from WebSocket server.");
+			};
+
+			// Handle errors
+			socket.onerror = function (error) {
+				console.log("WebSocket error:", error);
+			};
+		</script>
+	</body>
+</html>

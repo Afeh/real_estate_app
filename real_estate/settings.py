@@ -32,6 +32,8 @@ ALLOWED_HOSTS = ['*']
 # Application definition
 
 INSTALLED_APPS = [
+	'channels',
+	'daphne',
 	'django.contrib.admin',
 	'django.contrib.auth',
 	'django.contrib.contenttypes',
@@ -41,7 +43,8 @@ INSTALLED_APPS = [
 	'rest_framework',
 	'rest_framework_simplejwt',
 	'authentication',
-	'properties'
+	'properties',
+	'chat'
 ]
 
 MIDDLEWARE = [
@@ -86,7 +89,16 @@ TEMPLATES = [
 	},
 ]
 
+ASGI_APPLICATION = 'real_estate.asgi.application'
+
 WSGI_APPLICATION = 'real_estate.wsgi.application'
+
+
+CHANNEL_LAYERS = {
+	"default": {
+		"BACKEND": "channels.layers.InMemoryChannelLayer"
+	}
+}
 
 
 # Database
