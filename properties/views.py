@@ -66,7 +66,7 @@ class CreatePropertyView(APIView):
 		elif (user.is_active == False):
 			return Response({
 					'status': 'error',
-					'message': 'Account in active'
+					'message': 'Account inactive'
 				}, status=status.HTTP_400_BAD_REQUEST)
 
 
@@ -100,9 +100,9 @@ class PropertyListView(APIView):
 		queryset = Property.objects.all()
 
 		if state:
-			queryset = queryset.filter(state=state)
+			queryset = queryset.filter(state__icontains=state)
 		if city:
-			queryset = queryset.filter(city=city)
+			queryset = queryset.filter(city__icontains=city)
 		if amenities:
 			queryset = queryset.filter(amenities__icontains=amenities)
 		if name:
@@ -127,9 +127,9 @@ class PropertyListView(APIView):
 
 		if (user.latitude and user.longitude):
 			user_latitude = float(user.latitude)
-			user_longtitude = float(user.longitude)
+			user_longitude = float(user.longitude)
 
-			queryset = [prop for prop in queryset if self.is_within_radius(user_latitude, user_longtitude, prop.latitude, prop.longitude, float(radius))]
+			queryset = [prop for prop in queryset if self.is_within_radius(user_latitude, user_longitude, prop.latitude, prop.longitude, float(radius))]
 
 
 		if not queryset:
@@ -276,7 +276,7 @@ class EditPropertyView(APIView):
 
 		elif (request.user.is_active == False):
 			return Response({'status': 'error',
-							'message': 'Account in active'}, status=status.HTTP_400_BAD_REQUEST)
+							'message': 'Account inactive'}, status=status.HTTP_400_BAD_REQUEST)
 
 
 class CreatePropertyReview(APIView):
@@ -330,4 +330,4 @@ class CreatePropertyReview(APIView):
 
 		elif (request.user.is_active == False):
 			return Response({'status': 'error',
-							'message': 'Account in active'}, status=status.HTTP_400_BAD_REQUEST)
+							'message': 'Account inactive'}, status=status.HTTP_400_BAD_REQUEST)

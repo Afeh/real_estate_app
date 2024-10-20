@@ -10,6 +10,47 @@ class UserRole(enum.Enum):
 	AGENT = 'agent'
 	OWNER = 'owner'
 
+NIGERIAN_STATES = [
+	('Abia', 'AB'),
+	('Adamawa', 'AD'),
+	('Akwa Ibom', 'AK'),
+	('Anambra', 'AN'),
+	('Bauchi', 'BA'),
+	('Bayelsa', 'BY'),
+	('Benue', 'BE'),
+	('Borno', 'BO'),
+	('Cross River', 'CR'),
+	('Delta', 'DE'),
+	('Ebonyi', 'EB'),
+	('Edo', 'ED'),
+	('Ekiti', 'EK'),
+	('Enugu', 'EN'),
+	('Gombe', 'GO'),
+	('Imo', 'IM'),
+	('Jigawa', 'JI'),
+	('Kaduna', 'KD'),
+	('Kano', 'KN'),
+	('Katsina', 'KT'),
+	('Kebbi', 'KE'),
+	('Kogi', 'KO'),
+	('Kwara', 'KW'),
+	('Lagos', 'LA'),
+	('Nasarawa', 'NA'),
+	('Niger', 'NI'),
+	('Ogun', 'OG'),
+	('Ondo', 'ON'),
+	('Osun', 'OS'),
+	('Oyo', 'OY'),
+	('Plateau', 'PL'),
+	('Rivers', 'RV'),
+	('Sokoto', 'SO'),
+	('Taraba', 'TA'),
+	('Yobe', 'YO'),
+	('Zamfara', 'ZA'),
+	('Federal Capital Territory', 'FC'),
+]
+
+
 class UserManager(BaseUserManager):
 	def create_user(self, first_name, last_name, email, role, gender, phone, date_of_birth, location, password=None):
 		if not email:
@@ -106,10 +147,32 @@ class Client(models.Model):
 
 class Agent(models.Model):
 	user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='agent_profile', primary_key=True)
+	city = models.CharField(max_length=255)
+	state = models.CharField(max_length=50, choices=NIGERIAN_STATES)
+	average_rating = models.DecimalField(max_digits=2, decimal_places=1, default=0.0)
 	is_verified = models.BooleanField(default=False)
 
 	def __str__(self):
 		return f"Agent {self.user.first_name}"
+
+
+class Testimonials(models.Model):
+	agent = models.ForeignKey(Agent, on_delete=models.CASCADE, related_name="agent_testimonials")
+	created_by = models.ForeignKey(Client, on_delete=models.CASCADE, related_name="created_by")
+	rating = models.IntegerField()
+	caption =  models.TextField()
+	testimonial = models.TextField()
+	created_at = models.DateTimeField(auto_now_add=True)
+
+	def save(self, *args, **kwargs):
+		super(Testimonials, self).save(*args, **kwargs)
+		self.update_average_rating()
+
+	def update_average_rating(self):
+		agent_testimonials = Testimonials.objects.filter(agent=self.agent)
+		avg_rating = agent_testimonials.aggregate(models.Avg('rating'))['rating__avg']
+		self.agent.average_rating = avg_rating or 0.0
+		self.agent.save()
 
 
 class Owner(models.Model):
