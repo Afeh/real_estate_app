@@ -6,7 +6,7 @@ from .models import OTP
 
 def generate_otp(email):
 	# otp_code = str(random.randint(100000, 999999))
-	otp_code = "123456"
+	otp_code = "123456" #Change during production
 	expiry_time = timezone.now() + timedelta(minutes=10)
 
 	OTP.objects.create(email=email, otp=otp_code, expires_at=expiry_time)

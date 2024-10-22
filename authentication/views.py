@@ -66,7 +66,7 @@ class LoginView(APIView):
 		else:
 			data = {
 				"status": "Bad Request",
-				"message": "Authentication failed",
+				"message": "Authentication failed, Incorrect Password or Email",
 				"status_code": 401
 			}
 			return Response(data, status=status.HTTP_401_UNAUTHORIZED)
