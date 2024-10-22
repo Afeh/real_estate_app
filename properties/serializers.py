@@ -50,7 +50,7 @@ class PropertySerializer(serializers.ModelSerializer):
 	state = serializers.CharField()
 	agent_id = serializers.UUIDField()
 	owner_id = serializers.UUIDField()
-	average_rating = serializers.SerializerMethodField
+	average_rating = serializers.SerializerMethodField()
 
 	agent_full_name = serializers.SerializerMethodField()
 	owner_full_name = serializers.SerializerMethodField()

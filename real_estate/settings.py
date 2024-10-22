@@ -44,7 +44,8 @@ INSTALLED_APPS = [
 	'rest_framework_simplejwt',
 	'authentication',
 	'properties',
-	'chat'
+	'chat',
+	'notifications'
 ]
 
 MIDDLEWARE = [

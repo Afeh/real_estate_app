@@ -1,7 +1,7 @@
 from rest_framework import status
 from rest_framework.views import APIView
-from .models import Client, Agent, Owner
-from .serializers import UserSerializer, ForgotPasswordViewSerializer, SetNewPasswordViewSerializer, UpdateProfileSerializer, ClientProfileUpdateSerializer, AgentProfileUpdateSerializer
+from .models import Client, Agent, Owner, Testimonials
+from .serializers import UserSerializer, ForgotPasswordViewSerializer, SetNewPasswordViewSerializer, UpdateProfileSerializer, ClientProfileUpdateSerializer, AgentProfileUpdateSerializer, CreateAgentTestimonial, AgentSerializer
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework_simplejwt.authentication import JWTAuthentication
 from rest_framework.permissions import IsAuthenticated
@@ -16,6 +16,7 @@ from django.shortcuts import get_object_or_404
 from .models import OTP
 from .utils import generate_otp
 from uuid import UUID
+from math import radians, sin, cos, sqrt, atan2
 import random
 
 
@@ -65,7 +66,7 @@ class LoginView(APIView):
 		else:
 			data = {
 				"status": "Bad Request",
-				"message": "Authentication failed",
+				"message": "Authentication failed, Incorrect Password or Email",
 				"status_code": 401
 			}
 			return Response(data, status=status.HTTP_401_UNAUTHORIZED)
@@ -306,6 +307,9 @@ class UpdateUserProfile(APIView):
 								'last_name': agent.user.last_name,
 								'email': agent.user.email,
 								'phone': agent.user.phone,
+								'average_rating': agent.average_rating,
+								'city': agent.city,
+								'state': agent.state,
 								'is_verified': agent.is_verified
 							}
 						}
@@ -449,3 +453,176 @@ class SaveUserLocation(APIView):
 				'status': 'error',
 				'message': 'Latitude and Longitude required'
 			}, status=status.HTTP_400_BAD_REQUEST)
+
+
+class CreateTestimonialView(APIView):
+	permission_classes = [IsAuthenticated]
+	authentication_classes = [JWTAuthentication]
+
+	def post(self, request):
+		user = request.user
+
+		if (user.is_verified and user.is_active):
+			if hasattr(user, 'client_profile'):
+
+				client = user.client_profile
+	
+				serializer = CreateAgentTestimonial(data=request.data)
+
+				if serializer.is_valid():
+					agent_id = serializer.validated_data['agent_id']
+
+					try:
+						agent_instance = Agent.objects.get(pk=agent_id)
+
+						testimonial_serializer = serializer.save(agent=agent_instance, created_by=client)
+
+						data ={
+							'status': 'success',
+							'message': 'Testimonial successfully recorded',
+							'data': {
+								'testimonial': CreateAgentTestimonial(testimonial_serializer).data
+							}
+						}
+						return Response(data, status=status.HTTP_201_CREATED)
+				
+					except Agent.DoesNotExist:
+						return Response({
+							'status': 'error',
+							'message': 'Agent not found'
+						}, status=status.HTTP_404_NOT_FOUND)
+
+			else:
+				return Response({
+					'status': 'Forbidden',
+					'message': 'Only clients can drop Agent Testimonials'
+				}, status=status.HTTP_403_FORBIDDEN)
+
+		elif (request.user.is_verified == False):
+			return Response({'status': 'error',
+						'message': 'User is not verified'}, status=status.HTTP_400_BAD_REQUEST)
+
+		elif (request.user.is_active == False):
+			return Response({'status': 'error',
+							'message': 'Account inactive'}, status=status.HTTP_400_BAD_REQUEST)
+
+
+class GetAgentTestimonials(APIView):
+	permission_classes = [IsAuthenticated]
+	authentication_classes = [JWTAuthentication]
+
+	def get(self, request, agent_id):
+		user = request.user
+
+		if (user.is_verified and user.is_active):
+
+	
+			try:
+				testimonials = Testimonials.objects.filter(agent__pk=agent_id)
+
+				data = {
+					'status': 'success',
+					'message': 'Testimonials Retrieved',
+					'data': {
+						'testimonials': CreateAgentTestimonial(testimonials, many=True).data
+					}
+				}
+
+				return Response(data, status=status.HTTP_200_OK)
+
+			except Testimonials.DoesNotExist or Agent.DoesNotExist:
+				return Response({
+					'status': 'Not Found',
+					'message': 'Testimonials don\'t exist for Agent with inputed agent_id or Invalid agent_id'
+				}, status=status.HTTP_404_NOT_FOUND)
+
+
+		elif (request.user.is_verified == False):
+			return Response({'status': 'error',
+						'message': 'User is not verified'}, status=status.HTTP_400_BAD_REQUEST)
+
+		elif (request.user.is_active == False):
+			return Response({'status': 'error',
+							'message': 'Account inactive'}, status=status.HTTP_400_BAD_REQUEST)
+
+
+class AgentListView(APIView):
+	permission_classes = [IsAuthenticated]
+	authentication_classes = [JWTAuthentication]
+
+	def get(self, request):
+
+		user = request.user
+
+		city = request.query_params.get('city')
+		state = request.query_params.get('state')
+		first_name = request.query_params.get('first_name')
+		last_name = request.query_params.get('last_name')
+		rating = request.query_params.get('rating')
+
+		sort = request.query_params.get('sort', None)
+
+		radius = request.query_params.get('radius', 20)
+
+
+		queryset = Agent.objects.all()
+
+		if state:
+			queryset = queryset.filter(state__icontains=state)
+		if city:
+			queryset = queryset.filter(city__icontains=city)
+		if first_name:
+			queryset = queryset.filter(user__first_name__icontains=first_name)
+		if last_name:
+			queryset = queryset.filter(user__last_name__icontains=last_name)
+		if rating:
+			queryset = queryset.filter(average_rating__gte=rating)
+
+		if (user.latitude and user.longitude):
+			user_latitude = float(user.latitude)
+			user_longitude = float(user.longitude)
+
+			queryset = [agent for agent in queryset if agent.user.latitude and agent.user.longitude and self.is_within_radius(user_latitude, user_longitude, agent.user.latitude, agent.user.longitude, float(radius))]
+		else:
+			pass
+
+		if sort == 'asc':
+			queryset = sorted(queryset, key=lambda agent: agent.average_rating)
+		elif sort == 'desc':
+			queryset = sorted(queryset, key=lambda agent: agent.average_rating, reverse=True)
+
+		if not queryset:
+			return Response({
+				'status': 'Not found',
+				'message': 'No agents found matching your search'
+			}, status=status.HTTP_404_NOT_FOUND)
+		
+		serializer = AgentSerializer(queryset, many=True)
+
+		return Response({
+			'status': 'success',
+			'message': 'Agents retrieved successfully',
+			'agents': serializer.data
+		}, status=status.HTTP_200_OK)
+
+	def is_within_radius(self, user_lat, user_lon, agent_lat, agent_lon, radius_km):
+		#Haversine Function
+
+		R = 6371.0
+
+		user_lat_rad = radians(user_lat)
+		user_lon_rad = radians(user_lon)
+		prop_lat_rad = radians(agent_lat)
+		prop_lon_rad = radians(agent_lon)
+
+
+		dlat = prop_lat_rad - user_lat_rad
+		dlon = prop_lon_rad - user_lon_rad
+
+		a = sin(dlat/2)**2 + cos(user_lat_rad) * cos(prop_lat_rad) * sin(dlon/2)**2
+		c = 2 * atan2(sqrt(a), sqrt(1-a))
+
+		distance = R * c
+
+		return distance <= radius_km
+	
