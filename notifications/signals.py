@@ -3,18 +3,21 @@ from django.dispatch import receiver
 from properties.models import Property
 from .models import NotificationPreference
 from django.core.mail import send_mail
+from django.db.models import Q
 
 
 @receiver(post_save, sender=Property)
 def notify_users_on_new_property(sender, instance, created, **kwargs):
 	if created:
+
 		matching_preferences = NotificationPreference.objects.filter(
-			city__icontains = instance.city,
-			price_min__gte = instance.price,
-			price_max__lte = instance.price,
-			max_bedroom__lte = instance.bedroom_number,
-			min_bedroom__gte = instance.bedroom_number
+			Q(city__icontains=instance.city) |
+			Q(price_min__isnull=True) | Q(price_min__lte=instance.price),
+			Q(price_max__isnull=True) | Q(price_max__gte=instance.price),
+			Q(min_bedroom__isnull=True) | Q(min_bedroom__lte=instance.bedroom_number),
+			Q(max_bedroom__isnull=True) | Q(max_bedroom__gte=instance.bedroom_number)
 		)
+
 
 		for preference in matching_preferences:
 			user = preference.user
@@ -36,5 +39,5 @@ def send_property_notification(user, property_instance):
 	Visit the platform to check it out!
 	"""
 
-	send_mail(subject=subject, message=message, from_email='realestate@example.com', recipient_list=[user.email])
+	send_mail(subject=subject, message=message, from_email='realestateapp.devteam@gmail.com', recipient_list=[user.email], fail_silently=False)
 	

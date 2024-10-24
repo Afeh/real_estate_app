@@ -71,8 +71,10 @@ class UserManager(BaseUserManager):
 		user.save(using=self._db)
 		return user
 
-	def create_superuser(self, first_name, last_name, email, gender, phone, password=None):
-		user = self.create_user(email=email, first_name=first_name, last_name=last_name, gender=gender, phone=phone, password=password)
+	def create_superuser(self, first_name, last_name, email, phone, password=None):
+		email = self.normalize_email(email)
+		user = self.model(email=email, first_name=first_name, last_name=last_name, phone=phone)
+		user.set_password(password)
 		user.is_admin = True
 		user.is_staff = True
 		user.save(using=self._db)
@@ -87,7 +89,7 @@ class User(AbstractBaseUser):
 	first_name = models.CharField(max_length=255)
 	last_name = models.CharField(max_length=255)
 	email = models.CharField(max_length=255, unique=True)
-	date_of_birth = models.DateField()
+	date_of_birth = models.DateField(blank=True, null=True)
 	gender = models.CharField(max_length=20, choices=GENDER_CHOICES, default='male')
 	phone = models.CharField(max_length=255)
 	apartment_type = models.CharField(max_length=255)
@@ -103,7 +105,7 @@ class User(AbstractBaseUser):
 	is_staff = models.BooleanField(default=False)
 
 	USERNAME_FIELD = 'email'
-	REQUIRED_FIELDS = ['first_name', 'last_name', 'phone', 'date_of_birth']
+	REQUIRED_FIELDS = ['first_name', 'last_name', 'phone']
 
 	objects = UserManager()
 

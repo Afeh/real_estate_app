@@ -25,12 +25,12 @@
 
 		<script>
 			const token =
-				"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ0b2tlbl90eXBlIjoiYWNjZXNzIiwiZXhwIjoxNzI5MjkwNDQyLCJpYXQiOjE3MjkyODk1NDIsImp0aSI6IjM1ODBkNjQzNDk3ZTQxZmQ4Njk3NWRkMDY5ZjgxZTYzIiwidXNlcl9pZCI6IjJhY2NmMGI1LWY2ZTgtNDUxOC04MzVlLWFjYzQxMzJlZWI4YiJ9.M7WjosTu9F4vUaWN7AqbM50yZlgWqUBcdxVH4GNFqM8"; 
+				"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ0b2tlbl90eXBlIjoiYWNjZXNzIiwiZXhwIjoxNzI5NzYzMDQ0LCJpYXQiOjE3Mjk3NjIxNDQsImp0aSI6ImNhYzUwNzIyMjkxMDRiMDY5NDJjMjNkMWNiMTA3ZjI5IiwidXNlcl9pZCI6Ijk5YmI1ZGRhLTcwZjgtNGQzYy04YjAwLWIyOWJjNjk4NjkxYiJ9.8EvtMl1LYDOQCMi11Skt4TeVJOUXfhzyaxULNpa7Zz0"; 
 
 			// Create WebSocket connection with the token as a query parameter
 			// ws://localhost:8000/ws/chats/<conversation_id>/connect/?token=<your_jwt_token>&recipient_id=<recipient_user_id>
 			const socket = new WebSocket(
-				`ws://127.0.0.1:8000/ws/chats/09a39d44-1157-4fcc-874f-6a758b93606f/connect/?token=${token}&recipient_id=222c6655-7b80-4cdb-b64e-c2f1b68ca3f9`
+				`ws://127.0.0.1:8000/ws/chats/09a39d44-1157-4fcc-874f-6a758b93606f/connect/?token=${token}&recipient_id=f344c9b0-aedc-4bd5-b107-9be61f3c56ff`
 			);
 
 			// Connection opened
