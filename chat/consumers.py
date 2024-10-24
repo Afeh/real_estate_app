@@ -8,7 +8,7 @@ from rest_framework_simplejwt.exceptions import InvalidToken, TokenError
 from rest_framework_simplejwt.authentication import JWTAuthentication
 import json
 from urllib.parse import parse_qs
-
+from django.core.mail import send_mail
 
 
 User = get_user_model()
@@ -78,6 +78,8 @@ class ChatConsumer(AsyncWebsocketConsumer):
 			message = message
 		)
 
+		await self.notify_recipient(conversation, user, new_message)
+
 		await self.channel_layer.group_send(
 			self.room_group_name,
 			{
@@ -96,6 +98,28 @@ class ChatConsumer(AsyncWebsocketConsumer):
 			'message': message,
 			'sender': sender,
 		}))
+
+	@sync_to_async
+	def get_recipients(self, conversation, sender):
+		return list(conversation.participants.exclude(user_id=sender.user_id))
+
+	async def notify_recipient(self, conversation, sender, new_message):
+		recipients = await self.get_recipients(conversation, sender)
+
+		for recipient in recipients:
+			subject = f"New message from {sender.first_name}"
+			message = f"""
+			Hi {recipient.first_name}
+
+			You have received a new message from {sender.first_name}:
+
+			"{new_message.message}"
+
+			Login to your account reply.
+
+			"""
+
+			send_mail(subject=subject, message=message, from_email='realestateapp.devteam@gmail.com', recipient_list=[recipient.email], fail_silently=False)
 
 
 	@sync_to_async

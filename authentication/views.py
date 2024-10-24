@@ -73,27 +73,27 @@ class LoginView(APIView):
 		
 
 class SendOTPView(APIView):
-	def post(self, request):
-		email = request.data.get('email')
+	permission_classes = [IsAuthenticated]
+	authentication_classes = [JWTAuthentication]
 
-		if not email:
-			return Response({'error': 'Email is required'}, status=status.HTTP_400_BAD_REQUEST)
-		
-		if not User.objects.filter(email=email).exists():
-			return Response({"message": "Email does not exist"}, status=status.HTTP_400_BAD_REQUEST)
-		
+	def post(self, request):
+		email = request.user.email
+
 		generate_otp(email)
 		return Response({"message": "OTP sent to your email"}, status=status.HTTP_200_OK)
 
 
 class VerifyOTPView(APIView):
+	permission_classes = [IsAuthenticated]
+	authentication_classes = [JWTAuthentication]
+
 	def post(self, request):
-		email = request.data.get('email')
+		email = request.user.email
 		otp_code = request.data.get('otp')
 
 		try:
 			otp = OTP.objects.filter(email=email, otp=otp_code).latest('created_at')
-			user = User.objects.get(email=email)
+			user = request.user
 
 			if otp.is_verified:
 				return Response({"message": "OTP has already been used"}, status=status.HTTP_400_BAD_REQUEST)
@@ -115,11 +115,12 @@ class VerifyOTPView(APIView):
 
 
 class ResendOTPView(APIView):
-	def post(self, request):
-		email = request.data.get('email')
+	permission_classes = [IsAuthenticated]
+	authentication_classes = [JWTAuthentication]
 
-		if not User.objects.filter(email=email).exists():
-			return Response({"message": "Email does not exist"}, status=status.HTTP_400_BAD_REQUEST)
+	def post(self, request):
+		email = request.user.email
+
 		
 		generate_otp(email)
 		return Response({"message": "OTP has been resent to your mail"}, status=status.HTTP_200_OK)
@@ -143,11 +144,10 @@ class ForgotPasswordView(APIView):
 				reverse('password_reset', kwargs={'uidb64': uid, 'token': token})
 			)
 
-			subject = "Password Reset Request"
 			send_mail(
 				subject = "Password Reset Request from Real Estate Team",
 				message=f'Click the link below to reset your password: {reset_link}',
-				from_email='realestate@example.com',
+				from_email='realestateapp.devteam@gmail.com',
 				recipient_list=[email],
 			)
 			return Response({'message': 'Password reset link sent'}, status=status.HTTP_200_OK)
@@ -390,7 +390,6 @@ class ReactivateAccountView(APIView):
 			reverse('activate_account', kwargs={'uidb64': uid, 'token': token})
 		)
 
-		subject = "Account Reactivation Request"
 		send_mail(
 			subject="Account Reactivation Request from Real Estate Dev Team",
 			message=f'Click the link below to reset your password: \n {reset_link}',
