@@ -4,13 +4,28 @@
 	  {
 		"src": "real_estate/asgi.py",
 		"use": "@vercel/python",
-		"config": {"maxLambdaSize": "15mb", "runtime": "python3.12"}
+		"config": {
+		  "maxLambdaSize": "15mb",
+		  "runtime": "python3.12"
+		}
 	  }
 	],
 	"routes": [
 	  {
 		"src": "/(.*)",
 		"dest": "real_estate/asgi.py"
+	  },
+	  {
+		"src": "/static/(.*)",
+		"dest": "/static/$1"
+	  },
+	  {
+		"src": "/media/(.*)",
+		"dest": "/media/$1"
 	  }
-	]
+	],
+	"env": {
+	  "DJANGO_SETTINGS_MODULE": "real_estate.settings"
+	}
   }
+  
