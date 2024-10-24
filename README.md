@@ -121,5 +121,5 @@ The platform supports multiple user roles:
 * **Django Rest Framework**: For building the API.
 * **Django Rest Framework Simple JWT**: For authenticating users with tokens.
 * **Django Channels**: For handling WebSockets and real-time features
-* **PostgreSQL**: A powerful, open-sourve object-relational database
+* **PostgreSQL**: A powerful, open-source object-relational database
 * **Render**: For deployment of the application
