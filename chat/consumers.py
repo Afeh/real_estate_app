@@ -2,16 +2,15 @@ import json
 from channels.generic.websocket import AsyncWebsocketConsumer
 from .models import Message, Conversation
 from django.contrib.auth.models import AnonymousUser
-from django.contrib.auth import get_user_model
+# from django.contrib.auth import get_user_model
 from asgiref.sync import sync_to_async
 from rest_framework_simplejwt.exceptions import InvalidToken, TokenError
 from rest_framework_simplejwt.authentication import JWTAuthentication
 import json
 from urllib.parse import parse_qs
 from django.core.mail import send_mail
+from authentication.models import User
 
-
-User = get_user_model()
 
 
 class ChatConsumer(AsyncWebsocketConsumer):
