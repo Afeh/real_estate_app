@@ -40,8 +40,6 @@ This API provides endpoints for user registration, profile management, property 
 - Python 3.8+
 - Django 4.0+
 - Django Rest Framework
-- Json Web Token
-- Django 
 - PostreSQL
 
 ### Installation
